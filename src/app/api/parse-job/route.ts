@@ -152,6 +152,10 @@ ${content}`
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
     const data = JSON.parse(cleaned)
 
+    const rawScore = data.fit_score ?? data.fitScore ?? data.score ?? null
+    const numericScore = Number(String(rawScore).replace("%", "").trim())
+    const safeFitScore = Number.isFinite(numericScore) ? Math.max(0, Math.min(100, Math.round(numericScore))) : null
+
     return NextResponse.json({
       ...data,
       title: data.title || "Oferta sin título",
@@ -165,3 +169,4 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
