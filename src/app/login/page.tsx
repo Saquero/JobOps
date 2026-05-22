@@ -1,33 +1,60 @@
-﻿"use client"
+﻿"use client";
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { BarChart3, Loader2, Mail, CheckCircle } from "lucide-react"
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { BarChart3, Loader2, Mail, Lock, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
 
-  async function sendMagicLink() {
-    if (!email.trim()) return
-    setLoading(true)
-    setError(null)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-    const { error } = await supabase.auth.signInWithOtp({
+  async function login() {
+    if (!email.trim() || !password.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
+      password,
+    });
 
     if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
+      setError(error.message);
+      setLoading(false);
+      return;
     }
-    setLoading(false)
+
+    router.push("/");
+  }
+
+  async function register() {
+    if (!email.trim() || !password.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setMessage("Cuenta creada correctamente. Ya puedes entrar.");
+    setLoading(false);
   }
 
   return (
@@ -42,60 +69,86 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          {!sent ? (
-            <>
-              <h2 className="text-lg font-semibold text-white mb-2">Entrar</h2>
-              <p className="text-sm text-gray-400 mb-6">
-                Te enviamos un enlace mágico a tu email. Sin contraseñas.
-              </p>
+          <h2 className="text-lg font-semibold text-white mb-2">Entrar</h2>
+          <p className="text-sm text-gray-400 mb-6">
+            Accede con email y contraseña. Más rápido que magic link.
+          </p>
 
-              <div className="mb-4">
-                <label className="text-xs text-gray-500 uppercase tracking-wide">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && sendMagicLink()}
-                  placeholder="tu@email.com"
-                  className="w-full mt-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
-                />
-              </div>
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              Email
+            </label>
+            <div className="relative mt-1">
+              <Mail
+                size={16}
+                className="absolute left-4 top-3.5 text-gray-500"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
 
-              {error && (
-                <div className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2 mb-4">
-                  {error}
-                </div>
-              )}
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              Contraseña
+            </label>
+            <div className="relative mt-1">
+              <Lock
+                size={16}
+                className="absolute left-4 top-3.5 text-gray-500"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && login()}
+                placeholder="mínimo 6 caracteres"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
 
-              <button
-                onClick={sendMagicLink}
-                disabled={loading || !email.trim()}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white"
-              >
-                {loading
-                  ? <><Loader2 size={16} className="animate-spin" /> Enviando...</>
-                  : <><Mail size={16} /> Enviar enlace mágico</>
-                }
-              </button>
-            </>
-          ) : (
-            <div className="text-center py-4">
-              <CheckCircle className="text-green-400 mx-auto mb-4" size={48} />
-              <h2 className="text-lg font-semibold text-white mb-2">¡Revisa tu email!</h2>
-              <p className="text-sm text-gray-400 mb-6">
-                Te hemos enviado un enlace a <span className="text-white">{email}</span>.
-                Haz clic en él para entrar.
-              </p>
-              <button
-                onClick={() => { setSent(false); setEmail("") }}
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                Usar otro email
-              </button>
+          {error && (
+            <div className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2 mb-4">
+              {error}
             </div>
           )}
+
+          {message && (
+            <div className="text-xs text-green-400 bg-green-900/20 rounded-lg px-3 py-2 mb-4">
+              {message}
+            </div>
+          )}
+
+          <button
+            onClick={login}
+            disabled={loading || !email.trim() || !password.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white mb-3"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Procesando...
+              </>
+            ) : (
+              "Entrar"
+            )}
+          </button>
+
+          <button
+            onClick={register}
+            disabled={loading || !email.trim() || !password.trim()}
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white"
+          >
+            <UserPlus size={16} />
+            Crear cuenta
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
