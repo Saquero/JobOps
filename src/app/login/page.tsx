@@ -140,15 +140,15 @@ export default function LoginPage() {
           </button>
 
           <button
-            onClick={register}
+            onClick={() => router.push("/register")}
             disabled={loading || !email.trim() || !password.trim()}
             className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white"
           >
-            <UserPlus size={16} />
-            Crear cuenta
+            <UserPlus size={16} /> Crear cuenta
           </button>
         </div>
       </div>
     </div>
   );
 }
+
