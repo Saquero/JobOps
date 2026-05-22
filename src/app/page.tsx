@@ -562,7 +562,7 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-purple-400" /> Análisis IA</h3>
                     <span className={`text-2xl font-bold ${analysis.fit_score >= 70 ? "text-green-400" : analysis.fit_score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                      {analysis.fit_score}%
+                      {typeof analysis.fit_score === "number" ? `${analysis.fit_score}%` : "—"}
                     </span>
                   </div>
 
@@ -700,7 +700,7 @@ export default function Home() {
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-blue-400">
-                      {parsed.fit_score ? `${parsed.fit_score}%` : "—"}
+                      {typeof parsed.fit_score === "number" ? `${parsed.fit_score}%` : "—"}
                     </span>
                     <span className="text-sm text-gray-400">de encaje con {selectedCv?.name || "tu perfil"}</span>
                   </div>
@@ -751,3 +751,4 @@ export default function Home() {
     </div>
   )
 }
+
