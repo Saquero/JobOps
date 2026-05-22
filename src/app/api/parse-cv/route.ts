@@ -7,7 +7,7 @@ async function parsePdf(buffer: Buffer): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
   pdfjsLib.GlobalWorkerOptions.workerSrc = ""
 
-  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer), useWorkerFetch: false, isEvalSupported: false, useSystemFonts: true })
+  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer), useWorkerFetch: false, useSystemFonts: true })
   const pdf = await loadingTask.promise
 
   let fullText = ""
