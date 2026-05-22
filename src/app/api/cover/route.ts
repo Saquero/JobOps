@@ -2,27 +2,34 @@
 import { groq, MODEL } from '@/lib/groq'
 
 export async function POST(req: NextRequest) {
-  const { description, title, company, notes, profile } = await req.json()
+  const { description, title, company, notes, cvProfile } = await req.json()
 
-  const tone = profile?.cover_tone === 'formal' ? 'formal y profesional'
-    : profile?.cover_tone === 'entusiasta' ? 'entusiasta y motivado'
-    : 'cercano y directo'
+  const tone = cvProfile?.cover_tone === 'formal' ? 'formal and professional'
+    : cvProfile?.cover_tone === 'entusiasta' ? 'enthusiastic and motivated'
+    : 'close and direct'
 
-  const language = profile?.preferred_language === 'es' ? 'español'
-    : profile?.preferred_language === 'sv' ? 'svenska'
-    : profile?.preferred_language === 'auto' ? 'el mismo idioma que la oferta de trabajo'
-    : 'english'
+  const language = cvProfile?.preferred_language === 'es' ? 'Spanish'
+    : cvProfile?.preferred_language === 'sv' ? 'Swedish'
+    : cvProfile?.preferred_language === 'auto' ? 'the same language as the job offer'
+    : 'English'
+
+  const hasPersonalIntro = cvProfile?.personal_intro?.trim()
 
   const prompt = `You are an expert cover letter writer for software developers.
 
 Write a cover letter in ${language} with a ${tone} tone.
 Maximum 3 paragraphs. Sound human, not generic.
 
-CANDIDATE PROFILE:
-${profile?.cv_text || 'Experienced backend developer'}
+${hasPersonalIntro ? `IMPORTANT: The first paragraph MUST use this personal introduction EXACTLY as written by the candidate — do NOT change it, do NOT rewrite it, include it verbatim:
 
-Technical stack: ${profile?.stack || '.NET, Java, Clean Architecture, DDD'}
-Looking for: ${profile?.looking_for || 'Backend developer position'}
+"${cvProfile.personal_intro}"
+
+Then write 1-2 more paragraphs adapting the technical parts to match the job requirements.` : `Write 3 paragraphs adapting to the job requirements.`}
+
+CANDIDATE PROFILE:
+${cvProfile?.cv_text || 'Experienced backend developer'}
+Stack: ${cvProfile?.stack || '.NET, Java, Clean Architecture, DDD'}
+Looking for: ${cvProfile?.looking_for || 'Backend developer position'}
 
 JOB:
 Company: ${company}
@@ -30,13 +37,13 @@ Position: ${title}
 Description: ${description}
 Additional notes: ${notes || 'none'}
 
-Write the letter directly, no subject line or formal header. Adapt the technical parts to match exactly what the job requires.`
+Write the letter directly, no subject line or formal header.`
 
   const completion = await groq.chat.completions.create({
     messages: [{ role: 'user', content: prompt }],
     model: MODEL,
     temperature: 0.7,
-    max_tokens: 800,
+    max_tokens: 1000,
   })
 
   const cover = completion.choices[0]?.message?.content || ''

@@ -21,12 +21,26 @@ export type Job = {
   tags: string[] | null
   ai_analysis: string | null
   fit_score: number | null
+  cv_profile_id: string | null
 }
 
 export type Profile = {
   id: string
   full_name: string | null
   cv_text: string | null
+  stack: string | null
+  looking_for: string | null
+  cover_tone: string
+  preferred_language: string
+}
+
+export type CvProfile = {
+  id: string
+  user_id: string
+  name: string
+  is_default: boolean
+  cv_text: string | null
+  personal_intro: string | null
   stack: string | null
   looking_for: string | null
   cover_tone: string

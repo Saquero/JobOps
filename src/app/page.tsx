@@ -1,22 +1,23 @@
 ﻿"use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { supabase, type Job, type Profile } from "@/lib/supabase"
+import { supabase, type Job, type CvProfile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { Plus, Briefcase, Send, MessageSquare, XCircle, Trophy, BarChart3, Loader2, Sparkles, Copy, Trash2, ExternalLink, User, LogOut } from "lucide-react"
+import { Plus, Briefcase, Send, MessageSquare, XCircle, Trophy, BarChart3, Loader2, Sparkles, Copy, Trash2, ExternalLink, User, LogOut, FileText, ChevronDown } from "lucide-react"
 
 const STATUS_CONFIG = {
-  saved:     { label: "Guardada",   color: "bg-slate-100 text-slate-700",   icon: Briefcase },
-  applied:   { label: "Aplicada",   color: "bg-blue-100 text-blue-700",     icon: Send },
-  interview: { label: "Entrevista", color: "bg-yellow-100 text-yellow-700", icon: MessageSquare },
-  rejected:  { label: "Rechazada",  color: "bg-red-100 text-red-700",       icon: XCircle },
-  offer:     { label: "Oferta",     color: "bg-green-100 text-green-700",   icon: Trophy },
+  saved:     { label: "Guardada",   color: "bg-slate-100 text-slate-700" },
+  applied:   { label: "Aplicada",   color: "bg-blue-100 text-blue-700" },
+  interview: { label: "Entrevista", color: "bg-yellow-100 text-yellow-700" },
+  rejected:  { label: "Rechazada",  color: "bg-red-100 text-red-700" },
+  offer:     { label: "Oferta",     color: "bg-green-100 text-green-700" },
 }
 
 export default function Home() {
   const router = useRouter()
   const [jobs, setJobs] = useState<Job[]>([])
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [cvProfiles, setCvProfiles] = useState<CvProfile[]>([])
+  const [selectedCv, setSelectedCv] = useState<CvProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -27,6 +28,7 @@ export default function Home() {
   const [parsed, setParsed] = useState<any>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showCvSelector, setShowCvSelector] = useState(false)
 
   const fetchJobs = useCallback(async () => {
     const { data } = await supabase.from("jobs").select("*").order("created_at", { ascending: false })
@@ -38,8 +40,10 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
 
-      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single()
-      setProfile(profileData)
+      const { data: cvData } = await supabase.from("cv_profiles").select("*").eq("user_id", user.id).order("created_at")
+      setCvProfiles(cvData || [])
+      const defaultCv = cvData?.find(c => c.is_default) || cvData?.[0] || null
+      setSelectedCv(defaultCv)
 
       await fetchJobs()
       setLoading(false)
@@ -57,7 +61,7 @@ export default function Home() {
       const res = await fetch("/api/parse-job", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: input.trim(), profile })
+        body: JSON.stringify({ input: input.trim(), cvProfile: selectedCv })
       })
       const data = await res.json()
       if (data.error) {
@@ -80,7 +84,11 @@ export default function Home() {
 
     const { scrape_error, scraped, summary, requirements, pros, cons, keywords, cover_angle, fit_score, ...jobData } = parsed
     const ai_analysis = JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score })
-    await supabase.from("jobs").insert([{ ...jobData, fit_score, ai_analysis, status: "saved", user_id: user.id }])
+    await supabase.from("jobs").insert([{
+      ...jobData, fit_score, ai_analysis, status: "saved",
+      user_id: user.id,
+      cv_profile_id: selectedCv?.id || null
+    }])
     setParsed(null)
     setInput("")
     setShowForm(false)
@@ -100,7 +108,13 @@ export default function Home() {
     const res = await fetch("/api/cover", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: selectedJob.description, title: selectedJob.title, company: selectedJob.company, notes: selectedJob.notes, profile })
+      body: JSON.stringify({
+        description: selectedJob.description,
+        title: selectedJob.title,
+        company: selectedJob.company,
+        notes: selectedJob.notes,
+        cvProfile: selectedCv
+      })
     })
     const { cover } = await res.json()
     await supabase.from("jobs").update({ cover_letter: cover }).eq("id", selectedJob.id)
@@ -149,8 +163,34 @@ export default function Home() {
           <span className="text-gray-500 text-sm">por Saquero</span>
         </div>
         <div className="flex items-center gap-3">
+          {/* CV Selector */}
+          <div className="relative">
+            <button onClick={() => setShowCvSelector(!showCvSelector)}
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg text-sm transition-colors">
+              <FileText size={14} className="text-blue-400" />
+              <span className="text-gray-300 max-w-32 truncate">{selectedCv?.name || "Sin CV"}</span>
+              <ChevronDown size={14} className="text-gray-500" />
+            </button>
+            {showCvSelector && (
+              <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-10 min-w-48">
+                {cvProfiles.map(cv => (
+                  <button key={cv.id} onClick={() => { setSelectedCv(cv); setShowCvSelector(false) }}
+                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-700 transition-colors first:rounded-t-xl last:rounded-b-xl ${selectedCv?.id === cv.id ? "text-blue-400" : "text-gray-300"}`}>
+                    {cv.name} {cv.is_default && "⭐"}
+                  </button>
+                ))}
+                <div className="border-t border-gray-700">
+                  <button onClick={() => { router.push("/cvs"); setShowCvSelector(false) }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-500 hover:text-gray-300 hover:bg-gray-700 transition-colors rounded-b-xl">
+                    + Gestionar CVs
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={() => router.push("/perfil")} className="flex items-center gap-2 text-gray-400 hover:text-gray-200 text-sm transition-colors">
-            <User size={16} /> Mi Perfil
+            <User size={16} />
           </button>
           <button onClick={logout} className="flex items-center gap-2 text-gray-600 hover:text-gray-400 text-sm transition-colors">
             <LogOut size={16} />
@@ -173,10 +213,10 @@ export default function Home() {
         ))}
       </div>
 
-      {!profile?.cv_text && (
+      {cvProfiles.length === 0 && (
         <div className="mx-6 mb-2 bg-yellow-900/20 border border-yellow-800/50 rounded-lg px-4 py-3 flex items-center justify-between">
-          <p className="text-sm text-yellow-400">⚡ Completa tu perfil para que la IA use tus datos reales</p>
-          <button onClick={() => router.push("/perfil")} className="text-xs text-yellow-400 hover:text-yellow-300 underline">Ir a Mi Perfil</button>
+          <p className="text-sm text-yellow-400">⚡ Crea tu primer CV para que la IA use tus datos reales</p>
+          <button onClick={() => router.push("/cvs")} className="text-xs text-yellow-400 hover:text-yellow-300 underline">Crear CV</button>
         </div>
       )}
 
@@ -330,22 +370,26 @@ export default function Home() {
       {showForm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-2xl border border-gray-800 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Nueva oferta</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-300">✕</button>
             </div>
 
+            {selectedCv && (
+              <div className="flex items-center gap-2 bg-blue-900/20 border border-blue-800/40 rounded-lg px-3 py-2 mb-4">
+                <FileText size={14} className="text-blue-400" />
+                <span className="text-xs text-blue-300">Analizando con CV: <strong>{selectedCv.name}</strong></span>
+              </div>
+            )}
+
             {!parsed ? (
               <>
                 <p className="text-sm text-gray-400 mb-4">
-                  Pega la <span className="text-blue-400">URL</span> de la oferta o el <span className="text-blue-400">texto completo</span> — la IA lo analiza automáticamente.
+                  Pega la <span className="text-blue-400">URL</span> de la oferta o el <span className="text-blue-400">texto completo</span>.
                 </p>
-                <textarea
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
+                <textarea value={input} onChange={e => setInput(e.target.value)}
                   placeholder="https://empresa.com/jobs/backend-developer&#10;&#10;o pega aquí el texto completo de la oferta..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none h-48 mb-4"
-                />
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none h-48 mb-4" />
                 {parseError && (
                   <div className="text-xs text-yellow-400 bg-yellow-900/20 rounded-lg px-3 py-2 mb-4">⚠️ {parseError}</div>
                 )}
@@ -365,7 +409,7 @@ export default function Home() {
                     <span className={`text-2xl font-bold ${parsed.fit_score >= 70 ? "text-green-400" : parsed.fit_score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
                       {parsed.fit_score}%
                     </span>
-                    <span className="text-sm text-gray-400">de encaje con tu perfil</span>
+                    <span className="text-sm text-gray-400">de encaje con {selectedCv?.name || "tu perfil"}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

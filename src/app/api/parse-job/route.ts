@@ -24,7 +24,7 @@ async function scrapeUrl(url: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { input, profile } = await req.json()
+  const { input, cvProfile } = await req.json()
 
   if (!input?.trim()) {
     return NextResponse.json({ error: 'No input provided' }, { status: 400 })
@@ -66,9 +66,9 @@ Analyze this job offer and return ONLY a valid JSON with this exact format:
 }
 
 CANDIDATE PROFILE:
-${profile?.cv_text || 'Experienced backend developer'}
-Stack: ${profile?.stack || '.NET, Java, Clean Architecture, DDD'}
-Looking for: ${profile?.looking_for || 'Backend developer position'}
+${cvProfile?.cv_text || 'Experienced backend developer'}
+Stack: ${cvProfile?.stack || '.NET, Java, Clean Architecture, DDD'}
+Looking for: ${cvProfile?.looking_for || 'Backend developer position'}
 
 JOB CONTENT:
 ${content}
