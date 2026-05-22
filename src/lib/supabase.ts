@@ -1,0 +1,34 @@
+﻿import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+
+export type Job = {
+  id: string
+  created_at: string
+  user_id: string
+  title: string
+  company: string
+  location: string | null
+  url: string | null
+  description: string | null
+  status: 'saved' | 'applied' | 'interview' | 'rejected' | 'offer'
+  notes: string | null
+  cover_letter: string | null
+  salary: string | null
+  tags: string[] | null
+  ai_analysis: string | null
+  fit_score: number | null
+}
+
+export type Profile = {
+  id: string
+  full_name: string | null
+  cv_text: string | null
+  stack: string | null
+  looking_for: string | null
+  cover_tone: string
+  preferred_language: string
+}
