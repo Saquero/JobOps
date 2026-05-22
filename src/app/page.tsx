@@ -155,7 +155,7 @@ export default function Home() {
         location: data.location || editData.location || null,
         url: editData.url.trim() || data.url || null,
         description: data.description || editData.description || null,
-        fit_score: data.fit_score || null,
+        fit_score: typeof data.fit_score === "number" ? data.fit_score : null,
         ai_analysis
       }
 
@@ -252,7 +252,7 @@ export default function Home() {
       title: jobData.title || "Oferta guardada sin analizar",
       company: jobData.company || "Empresa pendiente",
       url: parsed.url || jobUrl.trim() || null,
-      fit_score: fit_score || null,
+      fit_score: typeof fit_score === "number" ? fit_score : null,
       ai_analysis,
       status: "saved",
       user_id: user.id,
@@ -427,7 +427,7 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
-                      {job.fit_score && <span className="text-xs text-blue-400 font-bold">{job.fit_score}%</span>}
+                      {typeof job.fit_score === "number" && <span className="text-xs text-blue-400 font-bold">{job.fit_score}%</span>}
                     </div>
                   </div>
                 </div>
@@ -751,4 +751,5 @@ export default function Home() {
     </div>
   )
 }
+
 
