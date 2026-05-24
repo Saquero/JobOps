@@ -7,7 +7,7 @@ function looksLikeValidJobText(text: string) {
   if (!text || text.trim().length < 350) return false
   const badSignals = ["enable javascript", "access denied", "captcha", "cloudflare", "cookies", "condiciones", "centro de privacidad", "© 2026 indeed"]
   if (badSignals.some(s => clean.includes(s)) && clean.length < 1200) return false
-  const jobSignals = ["requisitos", "funciones", "experiencia", "ofrecemos", "responsabilidades", "requirements", "responsibilities", "experience", "qualifications", "job description", "about the role", "benefits"]
+  const jobSignals = ["requisitos", "funciones", "experiencia", "ofrecemos", "responsabilidades", "requirements", "responsibilities", "experience", "qualifications", "job description", "about the role", "benefits", "puesto", "jornada"]
   return jobSignals.some(s => clean.includes(s))
 }
 
@@ -15,6 +15,17 @@ function normalizeScore(value: unknown) {
   const match = String(value ?? "").match(/-?\d+(\.\d+)?/)
   const num = match ? Number(match[0]) : NaN
   return Number.isFinite(num) ? Math.max(0, Math.min(100, Math.round(num))) : 0
+}
+
+function normalizeSkillLevels(skillLevels: any) {
+  if (!skillLevels || typeof skillLevels !== "object") return "No especificado"
+
+  return Object.entries(skillLevels)
+    .map(([skill, value]: any) => {
+      if (typeof value === "string") return `${skill}: nivel ${value}`
+      return `${skill}: nivel ${value.level || "medio"}${value.context ? `, contexto: ${value.context}` : ""}`
+    })
+    .join("\n")
 }
 
 async function scrapeUrl(url: string): Promise<string> {
@@ -25,7 +36,9 @@ async function scrapeUrl(url: string): Promise<string> {
     },
     signal: AbortSignal.timeout(10000)
   })
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
   const html = await res.text()
   const $ = cheerio.load(html)
   $("script, style, nav, footer, header, aside, iframe, noscript").remove()
@@ -55,7 +68,7 @@ export async function POST(req: NextRequest) {
       const scrapedText = await scrapeUrl(url)
       if (!looksLikeValidJobText(scrapedText)) {
         scrape_failed = true
-        scrape_error = "The page could not be extracted reliably."
+        scrape_error = "No se pudo extraer una oferta válida desde la URL."
       } else {
         content = scrapedText
         scraped = true
@@ -74,76 +87,83 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No hay texto suficiente para analizar." }, { status: 400 })
   }
 
-  const skillLevels = cvProfile?.skill_levels || {}
+  const skillLevelsText = normalizeSkillLevels(cvProfile?.skill_levels)
   const careerContext = cvProfile?.career_context || {}
   const smartRules = cvProfile?.smart_rules || {}
-  const personalContext = cvProfile?.personal_context || ""
 
-  const skillLevelsText = Object.keys(skillLevels).length > 0
-    ? Object.entries(skillLevels).map(([k, v]: any) => {
-        if (typeof v === "string") return `${k}: ${v}`
-        return `${k}: ${v.level || "medio"}${v.context ? ` (${v.context})` : ""}`
-      }).join(", ")
-    : "not specified"
+  const prompt = `Eres un analista de carrera HONESTO. Analiza la oferta contra el perfil real del candidato.
 
-  const prompt = `You are an HONEST career analyst. Your job is to give REALISTIC scores, not flattering ones.
+REGLAS CRÍTICAS:
+- Responde SIEMPRE en español.
+- No infles porcentajes.
+- No confundas experiencia retail/operaciones con experiencia profesional como developer.
+- Si una tecnología aparece en portfolio/proyectos personales, puntúa menos que experiencia profesional.
+- Si el puesto es senior y el candidato no tiene experiencia profesional equivalente, seniority_match debe ser bajo.
+- Si el puesto es remoto, la ubicación NO debe penalizar.
+- Si la oferta no es de Suecia, NO uses la mudanza a Suecia como punto negativo.
+- Si la oferta es en Suecia/Norrbotten/Luleå, la mudanza a Suecia puede ser positiva.
+- Si falta información, usa null. No inventes.
 
-CRITICAL RULES:
-${careerContext.career_level ? `- Candidate is: ${careerContext.career_level}. Do NOT score seniority high if job requires senior.` : ""}
-${careerContext.avoid_false_seniority ? "- NEVER assume experience the candidate does not explicitly have. If they list a skill without professional experience, score it lower." : ""}
-${smartRules.ignore_location_if_remote ? "- If the job is remote or hybrid, set location_match to 90+ regardless of candidate location." : ""}
-${smartRules.relocation_to_sweden ? "- Candidate is relocating to Sweden. For Swedish jobs this is a strong positive." : ""}
+CONTEXTO DE CARRERA:
+Nivel declarado: ${careerContext.career_level || "junior-mid en transición"}
+Evitar falso seniority: ${careerContext.avoid_false_seniority ? "sí" : "no"}
+Ignorar ubicación si remoto: ${smartRules.ignore_location_if_remote ? "sí" : "no"}
+Mudanza a Suecia: ${smartRules.relocation_to_sweden ? "sí" : "no"}
 
-CANDIDATE REAL SKILL LEVELS:
-Important: skills marked as learning or personal projects must score lower than professional experience.
-Professional experience > real projects > personal projects > learning.
+NIVELES REALES POR TECNOLOGÍA:
 ${skillLevelsText}
 
-CANDIDATE PROFILE:
+PERFIL DEL CANDIDATO:
 ${cvProfile?.cv_text || ""}
-Stack: ${cvProfile?.stack || ""}
-Looking for: ${cvProfile?.looking_for || ""}
-${personalContext ? `Personal context: ${personalContext}` : ""}
 
-Analyze this job offer and return ONLY valid JSON:
+STACK:
+${cvProfile?.stack || ""}
+
+QUÉ BUSCA:
+${cvProfile?.looking_for || ""}
+
+CONTEXTO PERSONAL:
+${cvProfile?.personal_context || ""}
+
+Devuelve SOLO JSON válido:
 {
-  "title": "job title or null",
-  "company": "company name or null",
-  "location": "location or null",
-  "salary": "salary or null",
-  "description": "summary in 3-5 paragraphs",
-  "fit_score": number 0-100 weighted average,
+  "title": "puesto o null",
+  "company": "empresa o null",
+  "location": "ubicación o null",
+  "salary": "salario o null",
+  "description": "resumen en español de 2-4 párrafos",
+  "fit_score": 0,
   "score_breakdown": {
-    "stack_match": number 0-100,
-    "experience_match": number 0-100,
-    "location_match": number 0-100,
-    "language_match": number 0-100,
-    "role_match": number 0-100,
-    "seniority_match": number 0-100
+    "stack_match": 0,
+    "experience_match": 0,
+    "location_match": 0,
+    "language_match": 0,
+    "role_match": 0,
+    "seniority_match": 0
   },
   "score_explanation": {
-    "why_good": ["reason 1", "reason 2"],
-    "why_not": ["reason 1", "reason 2"],
-    "honest_verdict": "1-2 sentence honest assessment"
+    "why_good": ["motivo"],
+    "why_not": ["motivo"],
+    "honest_verdict": "veredicto honesto en 1-2 frases"
   },
-  "summary": "2-3 sentence summary",
-  "requirements": ["req 1", "req 2"],
-  "pros": ["pro 1", "pro 2"],
-  "cons": ["con 1", "con 2"],
-  "keywords": ["keyword1", "keyword2"],
-  "cover_angle": "recommended cover letter angle — mention Sweden relocation only if relevant (not remote)",
-  "tags": ["tag1", "tag2"]
+  "summary": "resumen corto en español",
+  "requirements": ["requisito"],
+  "pros": ["pro"],
+  "cons": ["contra"],
+  "keywords": ["keyword"],
+  "cover_angle": "enfoque recomendado en español",
+  "tags": ["tag"]
 }
 
-JOB OFFER TEXT:
+OFERTA:
 ${content}`
 
   try {
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: MODEL,
-      temperature: 0.1,
-      max_tokens: 2000
+      temperature: 0.05,
+      max_tokens: 2200
     })
 
     const raw = completion.choices[0]?.message?.content || "{}"
@@ -151,7 +171,7 @@ ${content}`
     const data = JSON.parse(cleaned)
 
     const bd = data.score_breakdown || {}
-    const scoreBreakdown = {
+    const score_breakdown = {
       stack_match: normalizeScore(bd.stack_match),
       experience_match: normalizeScore(bd.experience_match),
       location_match: normalizeScore(bd.location_match),
@@ -160,21 +180,22 @@ ${content}`
       seniority_match: normalizeScore(bd.seniority_match)
     }
 
-    const calculatedFitScore = Math.round(
-      scoreBreakdown.stack_match * 0.25 +
-      scoreBreakdown.experience_match * 0.20 +
-      scoreBreakdown.role_match * 0.20 +
-      scoreBreakdown.seniority_match * 0.15 +
-      scoreBreakdown.location_match * 0.10 +
-      scoreBreakdown.language_match * 0.10
+    const fit_score = Math.round(
+      score_breakdown.stack_match * 0.25 +
+      score_breakdown.experience_match * 0.20 +
+      score_breakdown.role_match * 0.20 +
+      score_breakdown.seniority_match * 0.15 +
+      score_breakdown.location_match * 0.10 +
+      score_breakdown.language_match * 0.10
     )
 
     return NextResponse.json({
       ...data,
       title: data.title || "Oferta sin título",
       company: data.company || "Empresa pendiente",
-      fit_score: calculatedFitScore,
-      score_breakdown: scoreBreakdown,
+      description: data.description || data.summary || null,
+      fit_score,
+      score_breakdown,
       score_explanation: data.score_explanation || null,
       url: url || null,
       scraped,
@@ -185,4 +206,3 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
-

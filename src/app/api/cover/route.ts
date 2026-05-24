@@ -1,59 +1,66 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
-import { groq, MODEL } from '@/lib/groq'
+﻿import { NextRequest, NextResponse } from "next/server"
+import { groq, MODEL } from "@/lib/groq"
 
 export async function POST(req: NextRequest) {
   const { description, title, company, notes, cvProfile } = await req.json()
 
-  const tone = cvProfile?.cover_tone === 'formal' ? 'formal and professional'
-    : cvProfile?.cover_tone === 'entusiasta' ? 'enthusiastic and motivated'
-    : 'close and direct'
+  const preferredLanguage = cvProfile?.preferred_language || "auto"
+  const tone = cvProfile?.cover_tone || "cercano"
 
-  const language = cvProfile?.preferred_language === 'es' ? 'Spanish'
-    : cvProfile?.preferred_language === 'sv' ? 'Swedish'
-    : cvProfile?.preferred_language === 'auto' ? 'the same language as the job offer'
-    : 'English'
+  const outputLanguage =
+    preferredLanguage === "es" ? "español" :
+    preferredLanguage === "en" ? "inglés" :
+    preferredLanguage === "sv" ? "sueco" :
+    "el idioma más adecuado para la oferta"
 
-  const hasPersonalIntro = cvProfile?.personal_intro?.trim()
+  const prompt = `Eres experto escribiendo cartas de presentación honestas para candidatos tech.
 
-  const prompt = `You are an expert cover letter writer for software developers.
+REGLAS:
+- La información base del candidato está en español.
+- Solo la carta final debe salir en: ${outputLanguage}.
+- Tono: ${tone}.
+- No inventes experiencia profesional.
+- No presentes Natura como experiencia developer. Es retail operations / team leadership.
+- No menciones mudanza a Suecia salvo que la oferta sea en Suecia o el usuario lo haya indicado en notas.
+- Para ofertas remotas fuera de Suecia, NO menciones la mudanza.
+- Usa el contexto personal solo si aporta valor real.
+- Máximo 3 párrafos.
+- Sin subject ni cabecera formal.
 
-Write a cover letter in ${language} with a ${tone} tone.
-Maximum 3 paragraphs. Sound human, not generic.
+INTRO PERSONAL OPCIONAL:
+${cvProfile?.personal_intro || ""}
 
-${hasPersonalIntro ? `IMPORTANT: The first paragraph MUST use this personal introduction EXACTLY as written by the candidate — do NOT change it, do NOT rewrite it, include it verbatim:
+CONTEXTO PERSONAL:
+${cvProfile?.personal_context || ""}
 
-"${cvProfile.personal_intro}"
+CV / PERFIL:
+${cvProfile?.cv_text || ""}
 
-Then write 1-2 more paragraphs adapting the technical parts to match the job requirements.` : `Write 3 paragraphs adapting to the job requirements.`}
+STACK:
+${cvProfile?.stack || ""}
 
-CANDIDATE PROFILE:
-${cvProfile?.cv_text || 'Experienced backend developer'}
-Stack: ${cvProfile?.stack || '.NET, Java, Clean Architecture, DDD'}
-Looking for: ${cvProfile?.looking_for || 'Backend developer position'}
+QUÉ BUSCA:
+${cvProfile?.looking_for || ""}
 
-JOB:
-Company: ${company}
-Position: ${title}
-Description: ${description}
-Additional notes: ${notes || 'none'}
+OFERTA:
+Empresa: ${company}
+Puesto: ${title}
+Descripción: ${description}
+Notas del usuario: ${notes || "ninguna"}
 
-Important rules:
-- Mention relocation to Sweden only if the job is in Sweden or the user notes clearly make it relevant.
-- For remote roles outside Sweden, do not mention relocation.
-- Use personal context only when it strengthens the application.
-- Never overstate professional experience.
-- If a skill comes from personal projects or learning, phrase it honestly.
+Escribe directamente la carta.`
 
-Write the letter directly, no subject line or formal header.`
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: MODEL,
+      temperature: 0.45,
+      max_tokens: 1000
+    })
 
-  const completion = await groq.chat.completions.create({
-    messages: [{ role: 'user', content: prompt }],
-    model: MODEL,
-    temperature: 0.7,
-    max_tokens: 1000,
-  })
-
-  const cover = completion.choices[0]?.message?.content || ''
-  return NextResponse.json({ cover })
+    const cover = completion.choices[0]?.message?.content || ""
+    return NextResponse.json({ cover })
+  } catch (err) {
+    return NextResponse.json({ error: "Failed to generate cover", details: String(err) }, { status: 500 })
+  }
 }
-
