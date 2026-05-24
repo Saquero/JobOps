@@ -625,6 +625,127 @@ ${insertError.message}`
                     )}
                   </div>
 
+                  {analysis.fit_type && (
+                    <div className="mb-4 flex items-center gap-2 flex-wrap">
+
+                      <span className="text-xs text-gray-400">
+                        Tipo de encaje:
+                      </span>
+
+                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                        analysis.fit_type === "strong_fit"
+                          ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                          : analysis.fit_type === "growth_fit"
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : analysis.fit_type === "aspirational_fit"
+                          ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                          : "bg-red-500/20 text-red-300 border border-red-500/30"
+                      }`}>
+
+                        {analysis.fit_type === "strong_fit" && "Strong fit"}
+                        {analysis.fit_type === "growth_fit" && "Growth fit"}
+                        {analysis.fit_type === "aspirational_fit" && "Aspirational fit"}
+                        {analysis.fit_type === "long_shot" && "Long shot"}
+
+                      </span>
+
+                    </div>
+                  )}
+
+                  {analysis.application_strategy && (
+                    <div className="mb-4 bg-gray-950/60 border border-gray-800 rounded-xl p-4">
+
+                      <div className="text-xs text-cyan-400 font-medium mb-3">
+                        ESTRATEGIA DE CANDIDATURA
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+
+                        <div>
+                          <div className="text-gray-500 text-xs mb-1">
+                            Aplicar
+                          </div>
+
+                          <div className="text-white">
+                            {analysis.application_strategy.should_apply ? "Sí" : "No"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-gray-500 text-xs mb-1">
+                            Esfuerzo recomendado
+                          </div>
+
+                          <div className="text-white capitalize">
+                            {analysis.application_strategy.effort_level}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-gray-500 text-xs mb-1">
+                            Motivo
+                          </div>
+
+                          <div className="text-gray-300">
+                            {analysis.application_strategy.reason}
+                          </div>
+                        </div>
+
+                      </div>
+
+                    </div>
+                  )}
+
+                  {analysis.confidence_analysis && (
+                    <div className="mb-4 bg-gray-950/60 border border-gray-800 rounded-xl p-4">
+
+                      <div className="text-xs text-orange-400 font-medium mb-3">
+                        ANÁLISIS DE CONFIANZA
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <div>
+                          <div className="text-green-400 text-xs mb-2">
+                            EXPERIENCIA REAL
+                          </div>
+
+                          {analysis.confidence_analysis.real_experience?.map((x: string, i: number) => (
+                            <div key={i} className="text-xs text-gray-300 mb-1">
+                              ✓ {x}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <div className="text-yellow-400 text-xs mb-2">
+                            EN APRENDIZAJE
+                          </div>
+
+                          {analysis.confidence_analysis.learning_skills?.map((x: string, i: number) => (
+                            <div key={i} className="text-xs text-gray-300 mb-1">
+                              → {x}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <div className="text-red-400 text-xs mb-2">
+                            RIESGO DE INFLAR PERFIL
+                          </div>
+
+                          {analysis.confidence_analysis.overstated_risk?.map((x: string, i: number) => (
+                            <div key={i} className="text-xs text-gray-300 mb-1">
+                              ⚠ {x}
+                            </div>
+                          ))}
+                        </div>
+
+                      </div>
+
+                    </div>
+                  )}
+
                   {analysis.score_explanation && (
                     <div className="mb-4 bg-gray-950/60 border border-gray-800 rounded-xl p-4">
                       <div className="text-xs text-purple-400 font-medium mb-2">VEREDICTO HONESTO</div>
@@ -817,6 +938,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 

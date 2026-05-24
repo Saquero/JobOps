@@ -141,6 +141,20 @@ Devuelve SOLO JSON válido:
     "role_match": 0,
     "seniority_match": 0
   },
+
+  "fit_type": "strong_fit | growth_fit | aspirational_fit | long_shot",
+
+  "application_strategy": {
+    "should_apply": true,
+    "effort_level": "low | medium | high",
+    "reason": "explicación honesta"
+  },
+
+  "confidence_analysis": {
+    "real_experience": ["skills reales"],
+    "learning_skills": ["skills aprendiendo"],
+    "overstated_risk": ["riesgos de inflar perfil"]
+  },
   "score_explanation": {
     "why_good": ["motivo"],
     "why_not": ["motivo"],
@@ -180,14 +194,26 @@ ${content}`
       seniority_match: normalizeScore(bd.seniority_match)
     }
 
-    const fit_score = Math.round(
-      score_breakdown.stack_match * 0.25 +
-      score_breakdown.experience_match * 0.20 +
+    let fit_score = Math.round(
+      score_breakdown.stack_match * 0.22 +
+      score_breakdown.experience_match * 0.25 +
       score_breakdown.role_match * 0.20 +
-      score_breakdown.seniority_match * 0.15 +
+      score_breakdown.seniority_match * 0.18 +
       score_breakdown.location_match * 0.10 +
-      score_breakdown.language_match * 0.10
+      score_breakdown.language_match * 0.05
     )
+
+    const learningSkills = data.confidence_analysis?.learning_skills || []
+
+    if (
+      learningSkills.some((s: string) =>
+        ["java", "spring", "microservices", "angular"].some(k =>
+          s.toLowerCase().includes(k)
+        )
+      )
+    ) {
+      fit_score = Math.max(0, fit_score - 10)
+    }
 
     return NextResponse.json({
       ...data,
@@ -197,6 +223,9 @@ ${content}`
       fit_score,
       score_breakdown,
       score_explanation: data.score_explanation || null,
+      fit_type: data.fit_type || "growth_fit",
+      application_strategy: data.application_strategy || null,
+      confidence_analysis: data.confidence_analysis || null,
       url: url || null,
       scraped,
       scrape_failed,
@@ -206,3 +235,4 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
