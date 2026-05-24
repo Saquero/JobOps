@@ -160,6 +160,7 @@ ${content}`
       ...data,
       title: data.title || "Oferta sin título",
       company: data.company || "Empresa pendiente",
+      fit_score: safeFitScore,
       url: url || null,
       scraped,
       scrape_failed,
@@ -169,4 +170,6 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
+
 
