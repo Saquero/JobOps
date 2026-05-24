@@ -68,6 +68,7 @@ export default function Home() {
 
   function openNewJobModal() {
     setShowForm(true)
+
     setParsed(null)
     setInput("")
     setJobUrl("")
@@ -188,6 +189,7 @@ export default function Home() {
 
     setParsing(true)
     setParseError(null)
+
     setParsed(null)
 
     try {
@@ -242,13 +244,13 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, ...jobData } = parsed
+    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, ...jobData } = parsed
 
     const ai_analysis = manual_needed
       ? null
-      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown })
+      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation })
 
-    await supabase.from("jobs").insert([{
+    const { error: insertError } = await supabase.from("jobs").insert([{
       ...jobData,
       title: jobData.title || "Oferta guardada sin analizar",
       company: jobData.company || "Empresa pendiente",
@@ -259,6 +261,7 @@ export default function Home() {
       user_id: user.id,
       cv_profile_id: selectedCv?.id || null
     }])
+
 
     setParsed(null)
     setInput("")
@@ -778,6 +781,8 @@ export default function Home() {
     </div>
   )
 }
+
+
 
 
 
