@@ -625,6 +625,31 @@ ${insertError.message}`
                     )}
                   </div>
 
+                  {analysis.score_explanation && (
+                    <div className="mb-4 bg-gray-950/60 border border-gray-800 rounded-xl p-4">
+                      <div className="text-xs text-purple-400 font-medium mb-2">VEREDICTO HONESTO</div>
+                      {analysis.score_explanation.honest_verdict && (
+                        <p className="text-sm text-gray-300 mb-3">{analysis.score_explanation.honest_verdict}</p>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-xs text-green-400 font-medium mb-2">POR QUÉ SÍ</div>
+                          {analysis.score_explanation.why_good?.map((r: string, i: number) => (
+                            <div key={i} className="text-xs text-gray-300 mb-1">✓ {r}</div>
+                          ))}
+                        </div>
+
+                        <div>
+                          <div className="text-xs text-red-400 font-medium mb-2">POR QUÉ NO</div>
+                          {analysis.score_explanation.why_not?.map((r: string, i: number) => (
+                            <div key={i} className="text-xs text-gray-300 mb-1">✕ {r}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {analysis.keywords && (
                     <div className="mb-4">
                       <div className="text-xs text-blue-400 font-medium mb-2">KEYWORDS</div>
@@ -792,6 +817,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 

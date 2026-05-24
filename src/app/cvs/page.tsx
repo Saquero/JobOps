@@ -13,6 +13,16 @@ const EMPTY_CV = {
   cv_text: "",
   personal_intro: "",
   personal_context: "",
+      experience_profile: {
+        backend_professional_years: 0,
+        support_years: 1,
+        retail_years: 12
+      },
+      career_mode: "transition",
+      relocation_preferences: {
+        moving_to_sweden: true,
+        ignore_location_if_remote: true
+      },
   stack: "",
   looking_for: "",
   cover_tone: "cercano",
@@ -376,4 +386,5 @@ export default function CvsPage() {
     </div>
   )
 }
+
 
