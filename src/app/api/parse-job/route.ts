@@ -80,7 +80,10 @@ export async function POST(req: NextRequest) {
   const personalContext = cvProfile?.personal_context || ""
 
   const skillLevelsText = Object.keys(skillLevels).length > 0
-    ? Object.entries(skillLevels).map(([k, v]) => `${k}: ${v}`).join(", ")
+    ? Object.entries(skillLevels).map(([k, v]: any) => {
+        if (typeof v === "string") return `${k}: ${v}`
+        return `${k}: ${v.level || "medio"}${v.context ? ` (${v.context})` : ""}`
+      }).join(", ")
     : "not specified"
 
   const prompt = `You are an HONEST career analyst. Your job is to give REALISTIC scores, not flattering ones.
@@ -92,6 +95,8 @@ ${smartRules.ignore_location_if_remote ? "- If the job is remote or hybrid, set 
 ${smartRules.relocation_to_sweden ? "- Candidate is relocating to Sweden. For Swedish jobs this is a strong positive." : ""}
 
 CANDIDATE REAL SKILL LEVELS:
+Important: skills marked as learning or personal projects must score lower than professional experience.
+Professional experience > real projects > personal projects > learning.
 ${skillLevelsText}
 
 CANDIDATE PROFILE:
@@ -180,3 +185,4 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+

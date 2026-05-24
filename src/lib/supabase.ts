@@ -46,7 +46,8 @@ export type CvProfile = {
   looking_for: string | null
   cover_tone: string
   preferred_language: string
-  skill_levels: Record<string, string> | null
+  skill_levels: Record<string, string | { level: string; context?: string }> | null
   career_context: Record<string, any> | null
   smart_rules: Record<string, any> | null
 }
+

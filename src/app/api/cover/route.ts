@@ -37,6 +37,13 @@ Position: ${title}
 Description: ${description}
 Additional notes: ${notes || 'none'}
 
+Important rules:
+- Mention relocation to Sweden only if the job is in Sweden or the user notes clearly make it relevant.
+- For remote roles outside Sweden, do not mention relocation.
+- Use personal context only when it strengthens the application.
+- Never overstate professional experience.
+- If a skill comes from personal projects or learning, phrase it honestly.
+
 Write the letter directly, no subject line or formal header.`
 
   const completion = await groq.chat.completions.create({
@@ -49,3 +56,4 @@ Write the letter directly, no subject line or formal header.`
   const cover = completion.choices[0]?.message?.content || ''
   return NextResponse.json({ cover })
 }
+
