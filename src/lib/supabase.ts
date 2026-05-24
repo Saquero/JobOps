@@ -41,8 +41,12 @@ export type CvProfile = {
   is_default: boolean
   cv_text: string | null
   personal_intro: string | null
+  personal_context: string | null
   stack: string | null
   looking_for: string | null
   cover_tone: string
   preferred_language: string
+  skill_levels: Record<string, string> | null
+  career_context: Record<string, any> | null
+  smart_rules: Record<string, any> | null
 }

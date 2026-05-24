@@ -146,7 +146,8 @@ export default function Home() {
         cons: data.cons,
         keywords: data.keywords,
         cover_angle: data.cover_angle,
-        fit_score: data.fit_score
+        fit_score: data.fit_score,
+        score_breakdown: data.score_breakdown
       })
 
       const payload = {
@@ -155,7 +156,7 @@ export default function Home() {
         location: data.location || editData.location || null,
         url: editData.url.trim() || data.url || null,
         description: data.description || editData.description || null,
-        fit_score: typeof data.fit_score === "number" ? data.fit_score : null,
+        fit_score: Number.isFinite(Number(data.fit_score)) ? Number(data.fit_score) : null,
         ai_analysis
       }
 
@@ -241,18 +242,18 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, ...jobData } = parsed
+    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, ...jobData } = parsed
 
     const ai_analysis = manual_needed
       ? null
-      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score })
+      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown })
 
     await supabase.from("jobs").insert([{
       ...jobData,
       title: jobData.title || "Oferta guardada sin analizar",
       company: jobData.company || "Empresa pendiente",
       url: parsed.url || jobUrl.trim() || null,
-      fit_score: typeof fit_score === "number" ? fit_score : null,
+      fit_score: Number.isFinite(Number(fit_score)) ? Number(fit_score) : null,
       ai_analysis,
       status: "saved",
       user_id: user.id,
@@ -427,7 +428,7 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
-                      {typeof job.fit_score === "number" && <span className="text-xs text-blue-400 font-bold">{job.fit_score}%</span>}
+                      {Number.isFinite(Number(job.fit_score)) && <span className="text-xs text-blue-400 font-bold">{Number(job.fit_score)}%</span>}
                     </div>
                   </div>
                 </div>
@@ -562,11 +563,37 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-purple-400" /> Análisis IA</h3>
                     <span className={`text-2xl font-bold ${analysis.fit_score >= 70 ? "text-green-400" : analysis.fit_score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                      {typeof analysis.fit_score === "number" ? `${analysis.fit_score}%` : "—"}
+                      {Number.isFinite(Number(analysis.fit_score)) ? `${Number(analysis.fit_score)}%` : "—"}
                     </span>
                   </div>
 
                   {analysis.summary && <p className="text-gray-300 text-sm mb-4">{analysis.summary}</p>}
+
+                  {analysis.score_breakdown && (
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {[
+                        ["Stack", analysis.score_breakdown.stack_match],
+                        ["Experiencia", analysis.score_breakdown.experience_match],
+                        ["Rol", analysis.score_breakdown.role_match],
+                        ["Seniority", analysis.score_breakdown.seniority_match],
+                        ["Ubicación", analysis.score_breakdown.location_match],
+                        ["Idioma", analysis.score_breakdown.language_match],
+                      ].map(([label, value]) => (
+                        <div key={String(label)} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-400">{label}</span>
+                            <span className="text-xs font-bold text-blue-400">{Number(value)}%</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
+                              style={{ width: `${Number(value)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     {analysis.pros && (
@@ -700,7 +727,7 @@ export default function Home() {
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-blue-400">
-                      {typeof parsed.fit_score === "number" ? `${parsed.fit_score}%` : "—"}
+                      {Number.isFinite(Number(parsed.fit_score)) ? `${Number(parsed.fit_score)}%` : "—"}
                     </span>
                     <span className="text-sm text-gray-400">de encaje con {selectedCv?.name || "tu perfil"}</span>
                   </div>
@@ -751,5 +778,7 @@ export default function Home() {
     </div>
   )
 }
+
+
 
 
