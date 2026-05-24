@@ -244,11 +244,11 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, ...jobData } = parsed
+    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis, ...jobData } = parsed
 
     const ai_analysis = manual_needed
       ? null
-      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation })
+      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis })
 
     const { error: insertError } = await supabase.from("jobs").insert([{
       ...jobData,
@@ -938,6 +938,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
