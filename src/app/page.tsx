@@ -262,6 +262,17 @@ export default function Home() {
       cv_profile_id: selectedCv?.id || null
     }])
 
+    if (insertError) {
+      console.error(insertError)
+
+      alert(
+        `Error guardando oferta:
+${insertError.message}`
+      )
+
+      setSaving(false)
+      return
+    }
 
     setParsed(null)
     setInput("")
@@ -781,6 +792,7 @@ export default function Home() {
     </div>
   )
 }
+
 
 
 
