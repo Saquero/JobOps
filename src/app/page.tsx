@@ -70,6 +70,10 @@ export default function Home() {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
 
+    if (!token) {
+      alert("Sesión no encontrada. Cierra sesión y vuelve a entrar.")
+    }
+
     return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -948,6 +952,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
