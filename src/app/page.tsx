@@ -219,6 +219,18 @@ export default function Home() {
 
       const data = await res.json()
 
+      if (res.status === 401) {
+        await supabase.auth.signOut()
+        setParseError("Sesión caducada. Vuelve a iniciar sesión.")
+        setParsing(false)
+
+        setTimeout(() => {
+          router.push("/login")
+        }, 1200)
+
+        return
+      }
+
       if (data.error) {
         setParseError(data.error)
         setParsing(false)
@@ -323,6 +335,14 @@ ${insertError.message}`
         cvProfile: selectedCv
       })
     })
+
+    if (res.status === 401) {
+      await supabase.auth.signOut()
+      alert("Sesión caducada. Vuelve a iniciar sesión.")
+      router.push("/login")
+      setGeneratingCover(false)
+      return
+    }
 
     const { cover } = await res.json()
 
@@ -952,6 +972,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
