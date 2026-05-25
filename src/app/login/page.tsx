@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { BarChart3, Loader2, Mail, Lock, UserPlus } from "lucide-react";
+import { BarChart3, Loader2, Mail, Lock, UserPlus, KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -71,7 +71,7 @@ export default function LoginPage() {
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
           <h2 className="text-lg font-semibold text-white mb-2">Entrar</h2>
           <p className="text-sm text-gray-400 mb-6">
-            Accede con email y contraseña. Más rápido que magic link.
+            Accede a tu espacio privado de seguimiento de candidaturas.
           </p>
 
           <div className="mb-4">
@@ -141,14 +141,24 @@ export default function LoginPage() {
 
           <button
             onClick={() => router.push("/register")}
-            disabled={loading || !email.trim() || !password.trim()}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl text-sm font-medium transition-colors text-white mb-3"
           >
             <UserPlus size={16} /> Crear cuenta
+          </button>
+
+          <button
+            onClick={() => router.push("/reset-password")}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 border border-gray-700 hover:border-gray-600 bg-transparent py-3 rounded-xl text-sm font-medium transition-colors text-gray-300"
+          >
+            <KeyRound size={16} />
+            Olvidé mi contraseña
           </button>
         </div>
       </div>
     </div>
   );
 }
+
 
