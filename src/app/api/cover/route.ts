@@ -1,7 +1,11 @@
 ﻿import { NextRequest, NextResponse } from "next/server"
 import { groq, MODEL } from "@/lib/groq"
+import { requireUser } from "@/lib/supabase-server"
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUser(req)
+  if (auth.error) return auth.error
+
   const { description, title, company, notes, cvProfile } = await req.json()
 
   const preferredLanguage = cvProfile?.preferred_language || "auto"
@@ -64,3 +68,4 @@ Escribe directamente la carta.`
     return NextResponse.json({ error: "Failed to generate cover", details: String(err) }, { status: 500 })
   }
 }
+

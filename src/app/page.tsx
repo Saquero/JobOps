@@ -66,6 +66,16 @@ export default function Home() {
     init()
   }, [router, fetchJobs])
 
+  async function getAuthHeaders() {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  }
+
   function openNewJobModal() {
     setShowForm(true)
 
@@ -124,7 +134,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/parse-job", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           manualText: editData.description.trim(),
           originalUrl: editData.url.trim(),
@@ -195,7 +205,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/parse-job", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           manualText: input.trim(),
           originalUrl: jobUrl.trim(),
@@ -300,7 +310,7 @@ ${insertError.message}`
 
     const res = await fetch("/api/cover", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         description: selectedJob.description,
         title: selectedJob.title,
@@ -938,6 +948,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 

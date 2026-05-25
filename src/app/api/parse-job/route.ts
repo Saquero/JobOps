@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server"
 import { groq, MODEL } from "@/lib/groq"
 import * as cheerio from "cheerio"
+import { requireUser } from "@/lib/supabase-server"
 
 function looksLikeValidJobText(text: string) {
   const clean = text.toLowerCase()
@@ -46,6 +47,9 @@ async function scrapeUrl(url: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUser(req)
+  if (auth.error) return auth.error
+
   const { manualText, originalUrl, cvProfile } = await req.json()
 
   const url = originalUrl?.trim() || ""
@@ -235,4 +239,5 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
 
