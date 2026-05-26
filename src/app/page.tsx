@@ -1322,7 +1322,24 @@ ${insertError.message}`
                     </div>
                   )}
 
-                  {parsed.keywords?.length > 0 && (
+                  {parsed.cv_improvements?.length > 0 && (
+  <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4 mb-4">
+    <div className="text-sm font-semibold text-amber-300 mb-3">
+      Mejoras recomendadas para este CV
+    </div>
+
+    <div className="space-y-2">
+      {parsed.cv_improvements.map((item: string, index: number) => (
+        <div key={index} className="text-sm text-gray-300 flex gap-2">
+          <span className="text-amber-400">→</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+{parsed.keywords?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {parsed.keywords.map((k: string, i: number) => (
                         <span key={i} className="text-xs bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded">{k}</span>
@@ -1350,6 +1367,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
