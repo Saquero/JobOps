@@ -754,6 +754,96 @@ ${insertError.message}`
                 </div>
               </div>
 
+              <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-800">
+
+                <h3 className="text-sm font-semibold text-gray-300 mb-4">
+                  Timeline
+                </h3>
+
+                <div className="space-y-4">
+
+                  <div className="flex gap-3">
+                    <div className="w-3 h-3 rounded-full bg-gray-500 mt-1.5"></div>
+
+                    <div>
+                      <p className="text-sm text-white">
+                        Oferta guardada
+                      </p>
+
+                      <p className="text-xs text-gray-500">
+                        {formatDate(selectedJob.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedJob.cover_letter && (
+                    <div className="flex gap-3">
+                      <div className="w-3 h-3 rounded-full bg-indigo-500 mt-1.5"></div>
+
+                      <div>
+                        <p className="text-sm text-white">
+                          Carta generada con IA
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          JobOps AI Cover Engine
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedJob.applied_at && (
+                    <div className="flex gap-3">
+                      <div className="w-3 h-3 rounded-full bg-blue-500 mt-1.5"></div>
+
+                      <div>
+                        <p className="text-sm text-white">
+                          Candidatura enviada
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          {formatDate(selectedJob.applied_at)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedJob.follow_up_date && (
+                    <div className="flex gap-3">
+                      <div className="w-3 h-3 rounded-full bg-orange-500 mt-1.5"></div>
+
+                      <div>
+                        <p className="text-sm text-white">
+                          Follow-up pendiente
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          {formatDate(selectedJob.follow_up_date)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedJob.status === "interview" && (
+                    <div className="flex gap-3">
+                      <div className="w-3 h-3 rounded-full bg-green-500 mt-1.5"></div>
+
+                      <div>
+                        <p className="text-sm text-white">
+                          Entrevista activa
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          Estado actual de la candidatura
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
               <div className="flex gap-3 mb-6">
                 <button onClick={generateCover} disabled={generatingCover || !selectedJob.description}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -1127,6 +1217,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
