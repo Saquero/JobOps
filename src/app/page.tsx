@@ -291,7 +291,7 @@ export default function Home() {
       }
 
       if (data.error) {
-        setParseError(data.error)
+        setParseError(data.details ? `${data.error}: ${data.details}` : data.error)
         setParsing(false)
         return
       }
@@ -1367,6 +1367,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 

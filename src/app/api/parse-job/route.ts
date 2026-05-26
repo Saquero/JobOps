@@ -12,6 +12,22 @@ function looksLikeValidJobText(text: string) {
   return jobSignals.some(s => clean.includes(s))
 }
 
+function extractJson(raw: string) {
+  const cleaned = raw
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim()
+
+  const first = cleaned.indexOf("{")
+  const last = cleaned.lastIndexOf("}")
+
+  if (first >= 0 && last > first) {
+    return cleaned.slice(first, last + 1)
+  }
+
+  return cleaned
+}
+
 function normalizeScore(value: unknown) {
   const match = String(value ?? "").match(/-?\d+(\.\d+)?/)
   const num = match ? Number(match[0]) : NaN
@@ -294,6 +310,7 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
 
 
 
