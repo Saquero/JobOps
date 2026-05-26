@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { groq, MODEL } from "@/lib/groq"
 import * as cheerio from "cheerio"
 import { requireUser } from "@/lib/supabase-server"
@@ -209,15 +209,49 @@ ${content}`
 
     const learningSkills = data.confidence_analysis?.learning_skills || []
 
-    if (
-      learningSkills.some((s: string) =>
-        ["java", "spring", "microservices", "angular"].some(k =>
-          s.toLowerCase().includes(k)
-        )
+    const learningPenaltyKeywords = [
+      "java",
+      "spring",
+      "microservices",
+      "angular",
+      "kafka",
+      "murex",
+      "camunda",
+      "aws",
+      "azure",
+      "kubernetes"
+    ]
+
+    const hasLearningOnlyEnterpriseSkills = learningSkills.some((s: string) =>
+      learningPenaltyKeywords.some(k =>
+        s.toLowerCase().includes(k)
       )
-    ) {
-      fit_score = Math.max(0, fit_score - 10)
+    )
+
+    const seniorityScore = score_breakdown.seniority_match || 0
+    const experienceScore = score_breakdown.experience_match || 0
+
+    if (hasLearningOnlyEnterpriseSkills) {
+      fit_score -= 8
     }
+
+    if (seniorityScore < 40) {
+      fit_score -= 10
+    }
+
+    if (experienceScore < 35) {
+      fit_score -= 12
+    }
+
+    if (
+      seniorityScore < 30 &&
+      experienceScore < 30 &&
+      score_breakdown.stack_match > 60
+    ) {
+      fit_score -= 15
+    }
+
+    fit_score = Math.max(0, Math.min(100, fit_score))
 
     return NextResponse.json({
       ...data,
@@ -239,5 +273,6 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
 
 
