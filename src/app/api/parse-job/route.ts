@@ -185,8 +185,29 @@ ${content}`
     })
 
     const raw = completion.choices[0]?.message?.content || "{}"
-    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
-    const data = JSON.parse(cleaned)
+
+    console.log("RAW AI RESPONSE:")
+    console.log(raw)
+
+    const cleaned = raw
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim()
+
+    let data: any = {}
+
+    try {
+      data = JSON.parse(cleaned)
+    } catch (parseErr) {
+      console.error("JSON PARSE ERROR:")
+      console.error(parseErr)
+
+      return NextResponse.json({
+        error: "AI returned invalid JSON",
+        details: String(parseErr),
+        raw: cleaned.slice(0, 1500)
+      }, { status: 500 })
+    }
 
     const bd = data.score_breakdown || {}
     const score_breakdown = {
@@ -273,6 +294,7 @@ ${content}`
     return NextResponse.json({ error: "Failed to analyze job", details: String(err) }, { status: 500 })
   }
 }
+
 
 
 
