@@ -1,4 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -22,6 +22,10 @@ export type Job = {
   ai_analysis: string | null
   fit_score: number | null
   cv_profile_id: string | null
+  applied_at: string | null
+  follow_up_date: string | null
+  last_reviewed_at: string | null
+  next_action: string | null
 }
 
 export type Profile = {
@@ -50,4 +54,5 @@ export type CvProfile = {
   career_context: Record<string, any> | null
   smart_rules: Record<string, any> | null
 }
+
 

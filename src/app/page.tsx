@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { supabase, type Job, type CvProfile } from "@/lib/supabase"
@@ -309,9 +309,58 @@ ${insertError.message}`
   }
 
   async function updateStatus(id: string, status: Job["status"]) {
-    await supabase.from("jobs").update({ status }).eq("id", id)
+    const payload: Partial<Job> = { status }
+
+    if (status === "applied") {
+      payload.applied_at = new Date().toISOString()
+      payload.last_reviewed_at = new Date().toISOString()
+    }
+
+    await supabase.from("jobs").update(payload).eq("id", id)
     fetchJobs()
-    if (selectedJob?.id === id) setSelectedJob({ ...selectedJob, status })
+
+    if (selectedJob?.id === id) {
+      setSelectedJob({ ...selectedJob, ...payload })
+    }
+  }
+
+  async function updateFollowUp(days: number) {
+    if (!selectedJob) return
+
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+
+    const payload = {
+      follow_up_date: date.toISOString(),
+      last_reviewed_at: new Date().toISOString(),
+      next_action: `Revisar en ${days} días`
+    }
+
+    await supabase.from("jobs").update(payload).eq("id", selectedJob.id)
+    setSelectedJob({ ...selectedJob, ...payload })
+    setJobs(jobs.map(j => j.id === selectedJob.id ? { ...j, ...payload } : j))
+  }
+
+  async function markReviewed() {
+    if (!selectedJob) return
+
+    const payload = {
+      last_reviewed_at: new Date().toISOString(),
+      next_action: null
+    }
+
+    await supabase.from("jobs").update(payload).eq("id", selectedJob.id)
+    setSelectedJob({ ...selectedJob, ...payload })
+    setJobs(jobs.map(j => j.id === selectedJob.id ? { ...j, ...payload } : j))
+  }
+
+  function formatDate(value: string | null) {
+    if (!value) return "—"
+    return new Date(value).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    })
   }
 
   async function generateCover() {
@@ -597,6 +646,54 @@ ${insertError.message}`
                     {cfg.label}
                   </button>
                 ))}
+              </div>
+
+              <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-800">
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">Seguimiento</h3>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-xs">
+                  <div>
+                    <div className="text-gray-500 mb-1">Aplicada</div>
+                    <div className="text-gray-200">{formatDate(selectedJob.applied_at)}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 mb-1">Follow-up</div>
+                    <div className="text-gray-200">{formatDate(selectedJob.follow_up_date)}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 mb-1">Última revisión</div>
+                    <div className="text-gray-200">{formatDate(selectedJob.last_reviewed_at)}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 mb-1">Próxima acción</div>
+                    <div className="text-gray-200">{selectedJob.next_action || "—"}</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => updateFollowUp(3)}
+                    className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg">
+                    Revisar en 3 días
+                  </button>
+
+                  <button onClick={() => updateFollowUp(7)}
+                    className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg">
+                    Revisar en 7 días
+                  </button>
+
+                  <button onClick={() => updateFollowUp(14)}
+                    className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg">
+                    Follow-up 14 días
+                  </button>
+
+                  <button onClick={markReviewed}
+                    className="text-xs bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-white">
+                    Marcada revisada
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3 mb-6">
@@ -972,6 +1069,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
