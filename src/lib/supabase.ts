@@ -54,7 +54,13 @@ export type CvProfile = {
   skill_levels: Record<string, string | { level: string; context?: string }> | null
   career_context: Record<string, any> | null
   smart_rules: Record<string, any> | null
+  source_type: "manual" | "uploaded" | null
+  original_file_name: string | null
+  original_file_url: string | null
+  raw_text: string | null
+  parsed_profile: Record<string, any> | null
 }
+
 
 
 
