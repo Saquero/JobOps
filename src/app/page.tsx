@@ -430,6 +430,29 @@ ${insertError.message}`
     return false
   })
 
+  const weekAgo = new Date()
+  weekAgo.setDate(weekAgo.getDate() - 7)
+
+  const appliedThisWeek = jobs.filter(j =>
+    j.applied_at && new Date(j.applied_at) >= weekAgo
+  ).length
+
+  const interviewsThisWeek = jobs.filter(j =>
+    j.status === "interview"
+  ).length
+
+  const avgScore = jobs.filter(j => typeof j.fit_score === "number")
+
+  const averageFitScore = avgScore.length > 0
+    ? Math.round(
+        avgScore.reduce((acc, j) => acc + (j.fit_score || 0), 0) / avgScore.length
+      )
+    : 0
+
+  const topOpportunity = [...jobs]
+    .filter(j => typeof j.fit_score === "number")
+    .sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0))[0]
+
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.status === filter)
 
   const stats = Object.keys(STATUS_CONFIG).reduce((acc, key) => {
@@ -1104,6 +1127,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
