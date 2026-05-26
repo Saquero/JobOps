@@ -418,6 +418,18 @@ ${insertError.message}`
     router.push("/login")
   }
 
+  const today = new Date()
+
+  const requiresAction = jobs.filter(job => {
+    if (job.follow_up_date && new Date(job.follow_up_date) <= today) return true
+    if (job.status === "saved" && job.created_at) {
+      const created = new Date(job.created_at)
+      const days = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+      return days >= 7 && !job.last_reviewed_at
+    }
+    return false
+  })
+
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.status === filter)
 
   const stats = Object.keys(STATUS_CONFIG).reduce((acc, key) => {
@@ -496,6 +508,29 @@ ${insertError.message}`
           </button>
         ))}
       </div>
+
+      {requiresAction.length > 0 && (
+        <div className="mx-6 mb-3 bg-orange-900/20 border border-orange-800/50 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-orange-300 font-medium">
+              {requiresAction.length} candidatura{requiresAction.length === 1 ? "" : "s"} requieren acción
+            </p>
+            <p className="text-xs text-orange-400/70 mt-0.5">
+              Revisa follow-ups vencidos u ofertas guardadas hace varios días.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setFilter("all")
+              setSelectedJob(requiresAction[0])
+            }}
+            className="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg"
+          >
+            Ver primera
+          </button>
+        </div>
+      )}
 
       {cvProfiles.length === 0 && (
         <div className="mx-6 mb-2 bg-yellow-900/20 border border-yellow-800/50 rounded-lg px-4 py-3 flex items-center justify-between">
@@ -1069,6 +1104,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
