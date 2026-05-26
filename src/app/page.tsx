@@ -209,7 +209,8 @@ export default function Home() {
         cv_name: selectedCv.name,
         fit_score: Number(baseResult.fit_score) || 0,
         fit_type: baseResult.fit_type || null,
-        summary: baseResult.summary || null
+        summary: baseResult.summary || null,
+        analysis_result: baseResult
       })
     }
 
@@ -240,7 +241,8 @@ export default function Home() {
           cv_name: cv.name,
           fit_score: Number(data.fit_score) || 0,
           fit_type: data.fit_type || null,
-          summary: data.summary || null
+          summary: data.summary || null,
+          analysis_result: data
         })
       } catch {
         // No bloqueamos el análisis principal si falla una comparación
@@ -316,9 +318,18 @@ export default function Home() {
 
       const cv_match_results = await compareCvProfiles(baseParsed)
 
+      const recommendedMatch = cv_match_results.find((m: any) => m.recommended) || cv_match_results[0]
+      const recommendedAnalysis = recommendedMatch?.analysis_result || baseParsed
+
       setParsed({
-        ...baseParsed,
-        cv_match_results
+        ...recommendedAnalysis,
+        url: recommendedAnalysis.url || jobUrl.trim() || null,
+        cv_match_results: cv_match_results.map((m: any) => {
+          const { analysis_result, ...clean } = m
+          return clean
+        }),
+        recommended_cv_id: recommendedMatch?.cv_id || selectedCv?.id || null,
+        recommended_cv_name: recommendedMatch?.cv_name || selectedCv?.name || null
       })
     } catch {
       setParseError("Error al analizar. Intenta pegar el texto manualmente.")
@@ -334,11 +345,11 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis, ...jobData } = parsed
+    const { scrape_error, scraped, scrape_failed, manual_needed, summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis, recommended_cv_id, recommended_cv_name, ...jobData } = parsed
 
     const ai_analysis = manual_needed
       ? null
-      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis })
+      : JSON.stringify({ summary, requirements, pros, cons, keywords, cover_angle, fit_score, score_breakdown, score_explanation, fit_type, application_strategy, confidence_analysis, recommended_cv_id, recommended_cv_name })
 
     const { error: insertError } = await supabase.from("jobs").insert([{
       ...jobData,
@@ -349,7 +360,7 @@ export default function Home() {
       ai_analysis,
       status: "saved",
       user_id: user.id,
-      cv_profile_id: selectedCv?.id || null
+      cv_profile_id: recommended_cv_id || selectedCv?.id || null
     }])
 
     if (insertError) {
@@ -1339,6 +1350,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 
