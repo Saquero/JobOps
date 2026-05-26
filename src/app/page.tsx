@@ -198,6 +198,63 @@ export default function Home() {
     setParsing(false)
   }
 
+  async function compareCvProfiles(baseResult: any) {
+    if (!cvProfiles.length) return []
+
+    const results: any[] = []
+
+    if (selectedCv) {
+      results.push({
+        cv_id: selectedCv.id,
+        cv_name: selectedCv.name,
+        fit_score: Number(baseResult.fit_score) || 0,
+        fit_type: baseResult.fit_type || null,
+        summary: baseResult.summary || null
+      })
+    }
+
+    const otherCvs = cvProfiles
+      .filter(cv => cv.id !== selectedCv?.id)
+      .slice(0, 4)
+
+    for (const cv of otherCvs) {
+      try {
+        const res = await fetch("/api/parse-job", {
+          method: "POST",
+          headers: await getAuthHeaders(),
+          body: JSON.stringify({
+            manualText: input.trim(),
+            originalUrl: jobUrl.trim(),
+            cvProfile: cv
+          })
+        })
+
+        if (!res.ok) continue
+
+        const data = await res.json()
+
+        if (data.error || data.scrape_failed) continue
+
+        results.push({
+          cv_id: cv.id,
+          cv_name: cv.name,
+          fit_score: Number(data.fit_score) || 0,
+          fit_type: data.fit_type || null,
+          summary: data.summary || null
+        })
+      } catch {
+        // No bloqueamos el análisis principal si falla una comparación
+      }
+    }
+
+    const sorted = results.sort((a, b) => b.fit_score - a.fit_score)
+
+    return sorted.map((item, index) => ({
+      ...item,
+      recommended: index === 0
+    }))
+  }
+
   async function parseJob() {
     if (!input.trim() && !jobUrl.trim()) return
 
@@ -255,7 +312,14 @@ export default function Home() {
         return
       }
 
-      setParsed({ ...data, url: data.url || jobUrl.trim() || null })
+      const baseParsed = { ...data, url: data.url || jobUrl.trim() || null }
+
+      const cv_match_results = await compareCvProfiles(baseParsed)
+
+      setParsed({
+        ...baseParsed,
+        cv_match_results
+      })
     } catch {
       setParseError("Error al analizar. Intenta pegar el texto manualmente.")
     }
@@ -624,6 +688,39 @@ ${insertError.message}`
                   </button>
                 </div>
               </div>
+
+              {Array.isArray(selectedJob.cv_match_results) && selectedJob.cv_match_results.length > 1 && (
+                <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-blue-900/40">
+                  <h3 className="text-sm font-semibold text-blue-300 mb-3">
+                    Comparativa de CVs
+                  </h3>
+
+                  <div className="space-y-2">
+                    {selectedJob.cv_match_results.map((match: any) => (
+                      <div key={match.cv_id} className="flex items-center justify-between bg-gray-950/50 border border-gray-800 rounded-lg px-3 py-2">
+                        <div>
+                          <div className="text-sm text-gray-200">
+                            {match.cv_name}
+                            {match.recommended && (
+                              <span className="ml-2 text-xs text-green-400">★ recomendado</span>
+                            )}
+                          </div>
+
+                          {match.fit_type && (
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {match.fit_type}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-lg font-bold text-blue-400">
+                          {match.fit_score}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {editingJob && (
                 <div className="bg-gray-900 border border-blue-900/40 rounded-2xl p-5 mb-6">
@@ -1189,6 +1286,31 @@ ${insertError.message}`
                     </div>
                   )}
 
+                  {parsed.cv_match_results?.length > 1 && (
+                    <div className="bg-blue-950/40 border border-blue-800/50 rounded-xl p-3">
+                      <div className="text-xs text-blue-300 font-medium mb-2">
+                        CV recomendado para esta oferta
+                      </div>
+
+                      <div className="space-y-2">
+                        {parsed.cv_match_results.map((match: any) => (
+                          <div key={match.cv_id} className="flex items-center justify-between text-xs">
+                            <div className="text-gray-300">
+                              {match.cv_name}
+                              {match.recommended && (
+                                <span className="ml-2 text-green-400">★ recomendado</span>
+                              )}
+                            </div>
+
+                            <div className="font-bold text-blue-400">
+                              {match.fit_score}%
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {parsed.keywords?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {parsed.keywords.map((k: string, i: number) => (
@@ -1217,6 +1339,7 @@ ${insertError.message}`
     </div>
   )
 }
+
 
 
 

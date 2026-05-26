@@ -26,6 +26,7 @@ export type Job = {
   follow_up_date: string | null
   last_reviewed_at: string | null
   next_action: string | null
+  cv_match_results: any[] | null
 }
 
 export type Profile = {
@@ -54,5 +55,6 @@ export type CvProfile = {
   career_context: Record<string, any> | null
   smart_rules: Record<string, any> | null
 }
+
 
 
