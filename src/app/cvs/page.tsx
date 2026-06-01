@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { supabase, type CvProfile } from "@/lib/supabase"
@@ -386,5 +386,6 @@ export default function CvsPage() {
     </div>
   )
 }
+
 
 
