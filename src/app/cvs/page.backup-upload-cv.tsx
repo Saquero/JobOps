@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { supabase, type CvProfile } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, Trash2, ArrowLeft, Star, Save, Edit, ChevronDown, ChevronUp, Upload, CheckCircle, AlertCircle } from "lucide-react"
+import { Loader2, Plus, Trash2, ArrowLeft, Star, Save, Edit, ChevronDown, ChevronUp } from "lucide-react"
 
 const SKILL_LEVELS = ["básico", "medio", "fuerte", "experto"]
 
@@ -40,7 +40,6 @@ const EMPTY_CV = {
 
 export default function CvsPage() {
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [cvs, setCvs] = useState<CvProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<any>(null)
@@ -48,9 +47,6 @@ export default function CvsPage() {
   const [isNew, setIsNew] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [newSkill, setNewSkill] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle")
-  const [uploadMessage, setUploadMessage] = useState("")
 
   useEffect(() => {
     async function load() {
@@ -62,130 +58,6 @@ export default function CvsPage() {
     }
     load()
   }, [router])
-
-  async function handleUploadCv(file: File) {
-    const validTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain"
-    ]
-    const validExts = [".pdf", ".docx", ".txt"]
-    const fileName = file.name.toLowerCase()
-    const isValid = validTypes.includes(file.type) || validExts.some(ext => fileName.endsWith(ext))
-
-    if (!isValid) {
-      setUploadStatus("error")
-      setUploadMessage("Formato no soportado. Usa PDF, DOCX o TXT.")
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadStatus("error")
-      setUploadMessage("El archivo es demasiado grande. Máximo 5MB.")
-      return
-    }
-
-    setUploading(true)
-    setUploadStatus("idle")
-    setUploadMessage("")
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/login")
-        return
-      }
-
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const extractRes = await fetch("/api/extract-cv-text", {
-        method: "POST",
-        body: formData
-      })
-
-      const extracted = await extractRes.json()
-
-      if (!extractRes.ok || extracted.error) {
-        throw new Error(extracted.error || "No se pudo extraer texto del CV.")
-      }
-
-      const parseRes = await fetch("/api/parse-cv", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          cvText: extracted.raw_text,
-          fileName: extracted.original_file_name
-        })
-      })
-
-      const parsed = await parseRes.json()
-
-      if (!parseRes.ok || parsed.error) {
-        throw new Error(parsed.error || "No se pudo analizar el CV.")
-      }
-
-      const parsedProfile = parsed.parsed_profile || {}
-      const inferredName =
-        parsedProfile?.primary_role ||
-        extracted.original_file_name?.replace(/\.[^/.]+$/, "") ||
-        "CV importado"
-
-      const payload = {
-        user_id: user.id,
-        name: inferredName,
-        is_default: cvs.length === 0,
-        cv_text: extracted.raw_text,
-        raw_text: extracted.raw_text,
-        source_type: "uploaded",
-        original_file_name: extracted.original_file_name,
-        parsed_profile: parsedProfile,
-        personal_intro: "",
-        personal_context: "",
-        stack: Array.isArray(parsedProfile?.skills?.core_stack)
-          ? parsedProfile.skills.core_stack.join(", ")
-          : "",
-        looking_for: parsedProfile?.primary_role || "",
-        cover_tone: "cercano",
-        preferred_language: parsedProfile?.document_info?.language || "en",
-        skill_levels: {},
-        career_context: {
-          career_level: parsedProfile?.career_level || "unknown",
-          avoid_false_seniority: true
-        },
-        smart_rules: {
-          ignore_location_if_remote: true,
-          relocation_to_sweden: false
-        }
-      }
-
-      const { error } = await supabase.from("cv_profiles").insert([payload])
-
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      const { data } = await supabase
-        .from("cv_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at")
-
-      setCvs(data || [])
-      setUploadStatus("success")
-      setUploadMessage(`CV importado correctamente: ${extracted.original_file_name}`)
-    } catch (err) {
-      setUploadStatus("error")
-      setUploadMessage(err instanceof Error ? err.message : "Error al importar el CV.")
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
-    }
-  }
 
   async function save() {
     if (!editing?.name?.trim()) return
@@ -264,46 +136,13 @@ export default function CvsPage() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold flex-1">Mis CVs</h1>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.docx,.txt"
-          className="hidden"
-          onChange={e => {
-            const file = e.target.files?.[0]
-            if (file) handleUploadCv(file)
-          }}
-        />
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          {uploading ? <><Loader2 size={16} className="animate-spin" /> Importando...</> : <><Upload size={16} /> Subir CV</>}
-        </button>
-
         <button onClick={() => { setEditing({ ...EMPTY_CV }); setIsNew(true); setShowAdvanced(false) }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          <Plus size={16} /> Nuevo CV manual
+          <Plus size={16} /> Nuevo CV
         </button>
       </div>
 
       <div className="w-full max-w-5xl mx-auto p-6">
-        {uploadStatus === "success" && (
-          <div className="flex items-center gap-2 text-green-400 text-xs bg-green-900/20 border border-green-900/40 rounded-xl px-4 py-3 mb-4">
-            <CheckCircle size={14} />
-            {uploadMessage}
-          </div>
-        )}
-
-        {uploadStatus === "error" && (
-          <div className="flex items-center gap-2 text-red-400 text-xs bg-red-900/20 border border-red-900/40 rounded-xl px-4 py-3 mb-4">
-            <AlertCircle size={14} />
-            {uploadMessage}
-          </div>
-        )}
         {/* Lista de CVs */}
         {cvs.length === 0 && !editing ? (
           <div className="text-center py-16 text-gray-600">
@@ -547,7 +386,6 @@ export default function CvsPage() {
     </div>
   )
 }
-
 
 
 
