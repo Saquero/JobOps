@@ -96,11 +96,21 @@ export default function CvsPage() {
         return
       }
 
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+
+      if (!accessToken) {
+        throw new Error("Sesión no válida. Inicia sesión de nuevo.")
+      }
+
       const formData = new FormData()
       formData.append("file", file)
 
       const extractRes = await fetch("/api/extract-cv-text", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
         body: formData
       })
 
@@ -113,7 +123,8 @@ export default function CvsPage() {
       const parseRes = await fetch("/api/parse-cv", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           cvText: extracted.raw_text,
@@ -547,6 +558,7 @@ export default function CvsPage() {
     </div>
   )
 }
+
 
 
 
